@@ -2,10 +2,7 @@
 
 // Synchronous sleep function - blocks main thread
 function sleep(ms) {
-  const start = Date.now();
-  while (Date.now() - start < ms) {
-    // Blocking the main thread
-  }
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 // Console spam

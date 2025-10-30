@@ -365,12 +365,9 @@
         }
         return regex.test(email);
       }
-
       function sleep(ms) {
-        const start = Date.now();
-        while (Date.now() - start < ms) {}
+        return new Promise((resolve) => setTimeout(resolve, ms));
       }
-
       sleep(2000);
     </script>
   </body>
