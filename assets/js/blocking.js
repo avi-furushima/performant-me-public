@@ -17,10 +17,40 @@ sleep(5000);
 console.log("Main thread unblocked");
 
 // Inefficient DOM manipulation
+// function inefficientDOMManipulation() {
+//   console.log("Starting inefficient DOM manipulation");
+
+//   // Force multiple reflows and repaints
+//   for (let i = 0; i < 100; i++) {
+//     const div = document.createElement("div");
+//     div.innerHTML = `<p>Dynamic content ${i}</p>`;
+//     div.style.width = i + "px";
+//     div.style.height = i + "px";
+//     div.style.backgroundColor = `hsl(${i * 3.6}, 100%, 50%)`;
+//     div.style.position = "absolute";
+//     div.style.top = Math.random() * 100 + "px";
+//     div.style.left = Math.random() * 100 + "px";
+
+//     document.body.appendChild(div);
+
+//     // Force layout calculation
+//     div.offsetHeight;
+
+//     // Remove immediately (wasteful)
+//     document.body.removeChild(div);
+//   }
+//   console.log("Finished inefficient DOM manipulation");
+// }
+
+// 5.9ms => 1.4ms
+// 修正版: Inefficient DOM manipulation (batched with DocumentFragment)
 function inefficientDOMManipulation() {
   console.log("Starting inefficient DOM manipulation");
 
-  // Force multiple reflows and repaints
+  // 1) まずフラグメントにまとめて構築（この時点では描画もレイアウトも発生しない）
+  const fragment = document.createDocumentFragment();
+  const divs = [];
+
   for (let i = 0; i < 100; i++) {
     const div = document.createElement("div");
     div.innerHTML = `<p>Dynamic content ${i}</p>`;
@@ -31,14 +61,26 @@ function inefficientDOMManipulation() {
     div.style.top = Math.random() * 100 + "px";
     div.style.left = Math.random() * 100 + "px";
 
-    document.body.appendChild(div);
-
-    // Force layout calculation
-    div.offsetHeight;
-
-    // Remove immediately (wasteful)
-    document.body.removeChild(div);
+    fragment.appendChild(div);
+    divs.push(div);
   }
+
+  // 2) 一括でDOMに追加（ここで初めて描画対象になる）
+  document.body.appendChild(fragment);
+
+  // 3) 元コード同様に layout を読むが、最初の読み出しで1回フラッシュされ、以降はキャッシュ利用
+  //    （＝100回強制レイアウト → ほぼ1回に集約）
+  for (const div of divs) {
+    // Force layout calculation (kept for behavior parity)
+    // eslint-disable-next-line no-unused-expressions
+    div.offsetHeight;
+  }
+
+  // 4) 直後に全て削除（見た目の最終結果は元と同じ＝何も残らない）
+  for (const div of divs) {
+    div.remove();
+  }
+
   console.log("Finished inefficient DOM manipulation");
 }
 
